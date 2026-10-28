@@ -4,7 +4,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/M%C3%B3dulo-Backend--Socket-00B4D8?style=for-the-badge&logo=git&logoColor=white" />
-  <img src="https://img.shields.io/badge/Vers%C3%A3o-v0.3.1-10B981?style=for-the-badge&logo=git&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v0.4.0-10B981?style=for-the-badge&logo=git&logoColor=white" />
+  <img src="https://img.shields.io/badge/Monorepo-v0.5.0-00B4D8?style=for-the-badge&logo=github&logoColor=white" />
   <img src="https://img.shields.io/badge/Java-21_Puro-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
   <img src="https://img.shields.io/badge/Protocolo-RFC_6455_WebSocket-7C3AED?style=for-the-badge&logo=socketdotio&logoColor=white" />
   <img src="https://img.shields.io/badge/Deploy-Render_Cloud-000?style=for-the-badge&logo=render&logoColor=white" />
@@ -16,7 +17,7 @@
 ## Sumário
 
 - [Visão Geral do Módulo](#visão-geral-do-módulo)
-- [Status Atual do Módulo (v0.3.1)](#status-atual-do-módulo-v031)
+- [Status Atual do Módulo (v0.4.0)](#status-atual-do-módulo-v040)
 - [Histórico de Versões (Changelog)](#histórico-de-versões-changelog)
 - [Responsável & Papel no Projeto](#responsável--papel-no-projeto)
 - [Arquitetura e Concorrência](#arquitetura-e-concorrência)
@@ -52,16 +53,35 @@ Principais atribuições:
 
 ---
 
-## Status Atual do Módulo (v0.3.1)
+## Status Atual do Módulo (v0.4.0)
 
-> **Servidor WebSocket RFC 6455 operacional em Java 21 Puro, com Health Check HTTP integrado, pipeline CI/CD de sincronização automática com o monorepo e documentação arquitetural especializada.**
+> **Camada de infraestrutura e utilitários (Neon DB, HMAC-SHA256, Gson) integrada, servidor WebSocket RFC 6455 operacional em Java 21 Puro, Health Check HTTP integrado e pipeline CI/CD de sincronização contínua com o monorepo.**
+
+Principais entregas ativas na versão:
+- **Conexão e Pooling com PostgreSQL/Neon DB (`Database.java`)**: Conexão JDBC nativa com driver `org.postgresql.Driver`, pool concorrente thread-safe (`ArrayBlockingQueue`) e suporte a SSL/TLS para nuvem.
+- **Validação Criptográfica de Tokens (`AuthUtil.java`)**: Verificação de integridade de tokens Bearer via HMAC-SHA256, alinhada à política de autenticação do `backend-api` para validação no contrato `CT19`.
+- **Serialização de Mensagens (`JsonUtil.java`)**: Manipulação e parsing JSON com Google Gson para os contratos de eventos em tempo real (`CT18`, `CT19`, `CT22`).
+- **Servidor WebSocket RFC 6455 em Java Puro (`WebSocketUtil.java` / `Main.java`)**: Handshake HTTP `101 Switching Protocols`, decodificação de frames mascarados, frames de controle (`Ping`/`Pong`/`Close`) e probe HTTP de Uptime.
+- **Refinamento da Especificação de Requisitos (`docs/escopo.pdf`)**: Documento oficial de escopo atualizado com detalhamento formal das notificações em tempo real.
 
 ---
 
 ## Histórico de Versões (Changelog)
 
+### [v0.4.0] — Camada de Utilitários (Gson/HMAC), Conexão Neon DB e Refinamento do Escopo
+*Versão atual do módulo*
+
+- **Banco de Dados & Conexão**:
+  - Implementação de `Database.java` com pool de conexões JDBC (`org.postgresql.Driver`) para o PostgreSQL hospedado no Neon.tech.
+  - Suporte flexível a variáveis de ambiente (`DATABASE_URL`, `DB_URL` ou `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`).
+- **Autenticação & Segurança**:
+  - Implementação de `AuthUtil.java` com algoritmo HMAC-SHA256 compatível com o backend-api para validação do token no handshake WebSocket (`CT19: autenticarConexao`).
+- **Serialização JSON**:
+  - Implementação de `JsonUtil.java` encapsulando Google Gson para serialização de eventos e mensagens de notificação (`CT18`, `CT22`).
+- **Documentação & Requisitos**:
+  - Atualização do documento oficial `docs/escopo.pdf` com detalhamento formal das notificações push em tempo real.
+
 ### [v0.3.1] — Aprimoramento do README.md e Documentação Especializada do Módulo Socket
-*Versão atual*
 
 - **Documentação**:
   - Reestruturação completa do `README.md` focada especificamente na arquitetura interna do microsserviço **Backend Socket**.
@@ -244,7 +264,11 @@ pi4-2026-2-0102-grupo2-backend-socket/
 │   │   └── gson.jar            # Google Gson 2.11.0
 │   └── src/com/helpdesk/socket/
 │       ├── Main.java           # Entry point, ServerSocket e pool de threads
+│       ├── config/
+│       │   └── Database.java   # Gerenciador de conexão e pool JDBC (Neon DB / PostgreSQL)
 │       └── util/
+│           ├── AuthUtil.java   # Validação criptográfica de token HMAC-SHA256 (CT19)
+│           ├── JsonUtil.java   # Serialização e parsing JSON estruturado (Google Gson)
 │           └── WebSocketUtil.java # Handshake RFC 6455, decodificação de frames e Health Check
 ├── docs/
 │   ├── adr/
@@ -256,7 +280,7 @@ pi4-2026-2-0102-grupo2-backend-socket/
 │   │   ├── CT22-chamadoAtualizado.md
 │   │   ├── visao-geral.md
 │   │   └── README.md
-│   └── escopo.pdf              # Especificação de requisitos oficial
+│   └── escopo.pdf              # Especificação oficial de requisitos (revisada)
 ├── .gitignore
 └── README.md                   # Esta documentação especializada
 ```
@@ -267,11 +291,11 @@ pi4-2026-2-0102-grupo2-backend-socket/
 
 ### Pré-requisitos
 - **Java JDK 21** instalado.
-- Acesso à internet para validar o banco de dados Neon (ou PostgreSQL 15 local).
+- Acesso à internet para conexão com o banco de dados Neon (ou PostgreSQL 15 local).
 
 ### Variáveis de Ambiente
 
-O servidor pode ser configurado via variáveis de ambiente ou utilizará portas e padrões seguros:
+O servidor pode ser configurado via variáveis de ambiente padrão ou utilizará fallbacks seguros para desenvolvimento:
 
 | Variável | Padrão | Descrição |
 |:---|:---|:---|
@@ -279,7 +303,12 @@ O servidor pode ser configurado via variáveis de ambiente ou utilizará portas 
 | `INTERNAL_PORT` | `5001` | Porta TCP interna para comunicação exclusiva com o Backend API. |
 | `INTERNAL_SECRET` | `secret-dev` | Segredo compartilhado com a API para autenticação de eventos (CT18). |
 | `JWT_SECRET` | `jwt-secret` | Chave HMAC compartilhada para validação de tokens de usuários (CT19). |
-| `DATABASE_URL` | *Neon DB URL* | String de conexão JDBC segura com o banco PostgreSQL. |
+| `DATABASE_URL` / `DB_URL` | *Neon DB URL* | URL completa de conexão JDBC PostgreSQL (`jdbc:postgresql://...`). |
+| `DB_HOST` | `localhost` | Host do banco PostgreSQL (utilizado caso `DATABASE_URL` não esteja definida). |
+| `DB_PORT` | `5432` | Porta do banco PostgreSQL. |
+| `DB_NAME` | `helpdesk` | Nome do banco de dados relacional. |
+| `DB_USER` | `postgres` | Usuário de autenticação no banco. |
+| `DB_PASSWORD` | *(vazio)* | Senha de autenticação no banco. |
 
 ### Compilação e Execução Manual
 
