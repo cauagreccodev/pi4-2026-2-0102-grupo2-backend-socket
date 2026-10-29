@@ -1,13 +1,14 @@
 # HelpDesk — Backend Socket (WebSocket & Real-Time Events)
 
-> **Projeto Integrador IV · Grupo 2** — Servidor de mensageria concorrente em tempo real, implementando o protocolo WebSocket (RFC 6455) e soquetes TCP em Java 21 Puro para distribuição de eventos de chamados e notificações push.
+> **Projeto Integrador IV · Grupo 2** — Servidor de mensageria concorrente em tempo real, implementando o protocolo WebSocket (RFC 6455) em Java 21 Puro (sem frameworks) para distribuição de eventos de chamados (`CT22`) e notificações push (`ADR 0002`), conectado ao PostgreSQL em nuvem no **Neon.tech**.
 
 <p align="center">
   <img src="https://img.shields.io/badge/M%C3%B3dulo-Backend--Socket-00B4D8?style=for-the-badge&logo=git&logoColor=white" />
-  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v0.4.0-10B981?style=for-the-badge&logo=git&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v0.5.0-10B981?style=for-the-badge&logo=git&logoColor=white" />
   <img src="https://img.shields.io/badge/Monorepo-v0.5.0-00B4D8?style=for-the-badge&logo=github&logoColor=white" />
   <img src="https://img.shields.io/badge/Java-21_Puro-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
   <img src="https://img.shields.io/badge/Protocolo-RFC_6455_WebSocket-7C3AED?style=for-the-badge&logo=socketdotio&logoColor=white" />
+  <img src="https://img.shields.io/badge/Database-Neon_PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white" />
   <img src="https://img.shields.io/badge/Deploy-Render_Cloud-000?style=for-the-badge&logo=render&logoColor=white" />
   <img src="https://img.shields.io/badge/Sync-GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white" />
 </p>
@@ -17,7 +18,7 @@
 ## Sumário
 
 - [Visão Geral do Módulo](#visão-geral-do-módulo)
-- [Status Atual do Módulo (v0.4.0)](#status-atual-do-módulo-v040)
+- [Status Atual do Módulo (v0.5.0)](#status-atual-do-módulo-v050)
 - [Histórico de Versões (Changelog)](#histórico-de-versões-changelog)
 - [Responsável & Papel no Projeto](#responsável--papel-no-projeto)
 - [Arquitetura e Concorrência](#arquitetura-e-concorrência)
@@ -43,81 +44,90 @@
 
 ## Visão Geral do Módulo
 
-O **Backend Socket** é o componente de infraestrutura responsável por garantir que o Help Desk opere de forma reativa e instantânea. Ele atua como um hub de mensageria leve, mantendo sessões WebSocket persistentes com os navegadores dos usuários e escutando eventos gerados pelo **Backend API**.
+O **Backend Socket** é o componente de infraestrutura responsável por garantir que o Help Desk opere de forma reativa e instantânea. Ele atua como um hub de mensageria leve 100% baseado no protocolo **WebSocket (RFC 6455)**, mantendo sessões persistentes com os navegadores dos usuários e recebendo eventos de chamados gerados pelo **Backend API**.
 
 Principais atribuições:
-1. **Orquestração de Sessões WebSocket**: Gerencia o ciclo de vida das conexões ativas (autenticação, keep-alive, desconexões e reconexões).
-2. **Distribuição de Eventos de Chamados (`chamadoAtualizado`)**: Notifica instantaneamente os painéis de técnicos e clientes sempre que um chamado é aberto, atribuído ou alterado.
-3. **Disparo de Notificações Push**: Envia alertas leves em tempo real direcionados ao usuário destinatário, atualizando o badge visual e acionando feedback sonoro.
-4. **Interoperabilidade Dual (HTTP + WS)**: Atende requisições de Health Check na mesma porta pública do WebSocket, evitando que provedores de nuvem (Render) suspendam a aplicação por inatividade.
+1. **Orquestração de Sessões WebSocket (`CT19 — autenticarConexao`)**: Gerencia o ciclo de vida das conexões ativas, validando a assinatura HMAC-SHA256 do token e consultando o perfil (`role`) e status (`is_active`) do usuário no banco PostgreSQL do **Neon.tech** (`CT13`).
+2. **Recebimento Seguro de Eventos (`CT18 — publicarEvento`)**: Recebe eventos de abertura e atualização de chamados emitidos pela `backend-api` via WebSocket, autenticando o segredo compartilhado (`INTERNAL_SECRET`) em tempo constante.
+3. **Distribuição Seletiva em Tempo Real (`CT22 — chamadoAtualizado`)**: Notifica instantaneamente os painéis de todos os técnicos (`SUPPORT`/`ADMIN`) conectados e exclusivamente as abas do cliente solicitante (`clientId`) daquele chamado.
+4. **Disparo de Notificações Push (`ADR 0002 — NOTIFICATION_PING`)**: Envia alertas leves em tempo real direcionados ao usuário destinatário, atualizando o contador visual do sino e acionando feedback sonoro.
+5. **Interoperabilidade Dual (HTTP + WS)**: Atende requisições de Health Check (`GET /health`, `GET /`, `HEAD /`) na mesma porta pública do WebSocket (`PORT` / `5000`), evitando que o **Render** suspenda a aplicação por inatividade.
 
 ---
 
-## Status Atual do Módulo (v0.4.0)
+## Status Atual do Módulo (v0.5.0)
 
-> **Camada de infraestrutura e utilitários (Neon DB, HMAC-SHA256, Gson) integrada, servidor WebSocket RFC 6455 operacional em Java 21 Puro, Health Check HTTP integrado e pipeline CI/CD de sincronização contínua com o monorepo.**
+> **Servidor WebSocket RFC 6455 100% completo e operacional em Java 21 Puro: contratos `CT18`, `CT19`, `CT22` e `CT13` implementados, estado concorrente `ServerState` (`ADR 0001`), `ClientConnection` com *outbox* assíncrono, `UserDao` integrado ao Neon PostgreSQL via TLS e validado com Análise de Valores de Fronteira (BVA).**
 
 Principais entregas ativas na versão:
-- **Conexão e Pooling com PostgreSQL/Neon DB (`Database.java`)**: Conexão JDBC nativa com driver `org.postgresql.Driver`, pool concorrente thread-safe (`ArrayBlockingQueue`) e suporte a SSL/TLS para nuvem.
-- **Validação Criptográfica de Tokens (`AuthUtil.java`)**: Verificação de integridade de tokens Bearer via HMAC-SHA256, alinhada à política de autenticação do `backend-api` para validação no contrato `CT19`.
-- **Serialização de Mensagens (`JsonUtil.java`)**: Manipulação e parsing JSON com Google Gson para os contratos de eventos em tempo real (`CT18`, `CT19`, `CT22`).
-- **Servidor WebSocket RFC 6455 em Java Puro (`WebSocketUtil.java` / `Main.java`)**: Handshake HTTP `101 Switching Protocols`, decodificação de frames mascarados, frames de controle (`Ping`/`Pong`/`Close`) e probe HTTP de Uptime.
-- **Refinamento da Especificação de Requisitos (`docs/escopo.pdf`)**: Documento oficial de escopo atualizado com detalhamento formal das notificações em tempo real.
+- **Motor Completo do Servidor WebSocket (`WebSocketClientHandler.java`, `ServerState.java`, `ClientConnection.java`)**: Supervisão de sessões, fila assíncrona de eventos (`LinkedBlockingQueue<Runnable>`), *outbox* individual por conexão (`LinkedBlockingQueue<String>`) e roteamento em tempo real (`CT18`, `CT19`, `CT22` e `NOTIFICATION_PING`).
+- **Camada de Acesso a Dados e Modelos (`UserDao.java`, `SocketMessage.java`, `UserSessionInfo.java`, `TicketEventPayload.java`)**: Consulta parametrizada na tabela `users` do Neon DB (`CT13`), validação rigorosa de campos obrigatórios e sanitização automática de dados sensíveis (`secret`).
+- **Conexão e Pooling com PostgreSQL/Neon DB (`Database.java`)**: Conexão JDBC nativa com driver `org.postgresql.Driver`, pool concorrente thread-safe (`ArrayBlockingQueue`) e suporte obrigatório a SSL/TLS (`sslmode=require`).
+- **Validação Criptográfica de Tokens (`AuthUtil.java`)**: Verificação de integridade e expiração de tokens via HMAC-SHA256, 100% compatível com o `backend-api`.
+- **Serialização de Mensagens (`JsonUtil.java`)**: Manipulação e parsing JSON com Google Gson para envelopes padronizados (`{"type": "...", "data": {...}}`).
 
 ---
 
 ## Histórico de Versões (Changelog)
 
-### [v0.4.0] — Camada de Utilitários (Gson/HMAC), Conexão Neon DB e Refinamento do Escopo
-*Versão atual do módulo*
+### [v0.5.0] — Servidor WebSocket Completo (CT18, CT19, CT22), Modelos e UserDao no Neon (CT13)
+*Versão atual do módulo (Cards `#915` e `#924`)*
+
+- **Motor do Servidor & Concorrência (`server/`)**:
+  - Implementação de `ClientConnection.java` representando cada sessão WebSocket autenticada com fila de saída exclusiva limitada (`LinkedBlockingQueue<String>` de 100 mensagens) e thread dedicada de escrita (`ADR 0001`).
+  - Implementação de `ServerState.java` com `ConcurrentHashMap<Integer, Set<ClientConnection>>` para múltiplas abas por usuário, fila assíncrona de eventos (`LinkedBlockingQueue<Runnable>`) e filtro seletivo de broadcast para o contrato `CT22 (chamadoAtualizado)` e `NOTIFICATION_PING` (`ADR 0002`).
+  - Implementação de `WebSocketClientHandler.java` atendendo os contratos `CT19 (autenticarConexao)` e `CT18 (publicarEvento)` sobre WebSocket RFC 6455, com validação de `INTERNAL_SECRET` via `MessageDigest.isEqual` e tratamento completo dos códigos de erro (`NAO_AUTENTICADO`, `TOKEN_INVALIDO`, `USUARIO_INATIVO`).
+  - Atualização da `Main.java` e do `Dockerfile` (compilação UTF-8) para execução de produção no Render.
+- **Modelos & Persistência (`model/` e `dao/`)**:
+  - Implementação de `SocketMessage.java`, `UserSessionInfo.java` e `TicketEventPayload.java` (com validação de domínio e omissão de `secret` na conversão para `CT22`).
+  - Implementação de `UserDao.java` (`CT13: buscarUsuarioPorId`) consultando `id, name, email, role, is_active` no Neon PostgreSQL.
+  - Validação completa com **Análise de Valores de Fronteira (BVA)**, Particionamento em Classes de Equivalência e testes de integração no Neon.tech e no Console do navegador.
+
+### [v0.4.1] — Detalhamento das Notificações em Tempo Real no Escopo Oficial (`#912`)
+
+- **Documentação & Escopo**:
+  - Atualização de `docs/escopo.pdf` incluindo a especificação das notificações push e atualização em tempo real diretamente na Tabela de Entregáveis (`E4`, `E5` e `E6`) e quadro técnico dos contratos (`CT19`, `CT18`, `CT22` e `ADR 0002`).
+
+### [v0.4.0] — Camada de Utilitários (Gson/HMAC) e Conexão Neon DB (`#912`, `#915`, `#924`)
 
 - **Banco de Dados & Conexão**:
-  - Implementação de `Database.java` com pool de conexões JDBC (`org.postgresql.Driver`) para o PostgreSQL hospedado no Neon.tech.
-  - Suporte flexível a variáveis de ambiente (`DATABASE_URL`, `DB_URL` ou `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`).
+  - Implementação de `Database.java` com pool de conexões JDBC (`org.postgresql.Driver`) para o PostgreSQL hospedado no Neon.tech com TLS (`sslmode=require`).
 - **Autenticação & Segurança**:
-  - Implementação de `AuthUtil.java` com algoritmo HMAC-SHA256 compatível com o backend-api para validação do token no handshake WebSocket (`CT19: autenticarConexao`).
+  - Implementação de `AuthUtil.java` com algoritmo HMAC-SHA256 compatível com o `backend-api` para validação do token no handshake WebSocket (`CT19: autenticarConexao`).
 - **Serialização JSON**:
-  - Implementação de `JsonUtil.java` encapsulando Google Gson para serialização de eventos e mensagens de notificação (`CT18`, `CT22`).
-- **Documentação & Requisitos**:
-  - Atualização do documento oficial `docs/escopo.pdf` com detalhamento formal das notificações push em tempo real.
+  - Implementação de `JsonUtil.java` encapsulando Google Gson para serialização de envelopes de eventos e erros (`CT18`, `CT19`, `CT22`).
 
 ### [v0.3.1] — Aprimoramento do README.md e Documentação Especializada do Módulo Socket
 
 - **Documentação**:
   - Reestruturação completa do `README.md` focada especificamente na arquitetura interna do microsserviço **Backend Socket**.
-  - Detalhamento do protocolo RFC 6455 (handshake HTTP `101 Switching Protocols`, máscara XOR de 4 bytes e opcodes de controle).
-  - Mapeamento dos contratos de tempo real (`CT18`, `CT19`, `CT22`), ADRs (`0001` e `0002`) e instruções de execução e CI/CD.
 
 ### [v0.3.0] — Base do Servidor WebSocket (RFC 6455), Health Check HTTP e Sync CI/CD
 
 - **Backend Socket**:
-  - Implementação de `WebSocketUtil.java` para handshake e tratamento de frames RFC 6455 em Java puro.
-  - Implementação de `Main.java` com `ServerSocket` e `ExecutorService` (`CachedThreadPool`) para conexões concorrentes.
-  - Suporte nativo a rota pública HTTP `/health` e `/` na mesma porta do WebSocket para prevenção de *cold start* no Render.
-- **CI/CD**:
-  - Adição do workflow GitHub Actions (`.github/workflows/sync-to-main.yml`) para sincronização automática de código com o repositório principal.
+  - Implementação de `WebSocketUtil.java` para handshake e tratamento de frames RFC 6455 em Java puro, rota HTTP `/health` e workflow GitHub Actions (`sync-to-main.yml`).
 
 ### [v0.2.1] — Correção e Revisão de Escopo na ADR 0001
 
 - **Documentação / ADR**:
-  - Correção de seções faltantes em `docs/adr/0001-servidor.md` e formalização do descarte de salas de chat por chamado em favor de eventos de chamados e notificações push.
+  - Formalização do descarte de salas de chat por chamado em favor de eventos de chamados (`CT22`) e notificações push (`ADR 0002`).
 
 ### [v0.2.0] — Especificação de Requisitos, Fluxos de Integração e ADRs
 
 - **Documentação**:
-  - Inclusão do documento oficial de escopo do projeto (`docs/escopo.pdf`).
-  - Adição da `ADR 0002` (Notificações em Tempo Real via Push Ping) e contratos de fluxo em `docs/fluxos/`.
+  - Inclusão do documento oficial de escopo (`docs/escopo.pdf`), `ADR 0002` e contratos de fluxo em `docs/fluxos/`.
 
 ### [v0.1.0] — Inicialização do Microsserviço Backend-Socket Desacoplado
 
 - **Infraestrutura**:
-  - Estruturação inicial do repositório dedicado para o servidor de sockets, com `Dockerfile` multi-stage e dependências base (`postgresql.jar` e `gson.jar`).
+  - Estruturação inicial do repositório dedicado para o servidor WebSocket, com `Dockerfile` multi-stage e dependências base (`postgresql.jar` e `gson.jar`).
 
 ---
 
 ## Responsável & Papel no Projeto
 
 * **Responsável pelo Módulo**: Cauã Vasconcelos Grecco De Faria (25006367)
+* **Cards no OpenProject**: `#912` (`H01.3 Repos`), `#915` (`H01.6 Socket — CT18`) e `#924` (`H05.1 WebSocket Público — CT19 / CT22`)
 * **Repositório Oficial**: [pi4-2026-2-0102-grupo2-backend-socket](https://github.com/cauagreccodev/pi4-2026-2-0102-grupo2-backend-socket)
 * **Repositório Central do Grupo**: [pi4-2026-2-0102-grupo2](https://github.com/cauagreccodev/pi4-2026-2-0102-grupo2)
 * **Frontend**: [pi4-0102-g2-frontend](https://github.com/Vinicius-Heinzl/pi4-0102-g2-frontend) (Vinicius Fortes Heinzl)
@@ -127,50 +137,46 @@ Principais entregas ativas na versão:
 
 ## Arquitetura e Concorrência
 
-Construído sem frameworks externos (como Spring Boot, Netty ou Micronaut), o servidor utiliza exclusivamente os recursos concorrentes da biblioteca padrão do Java (`java.util.concurrent`) e os sockets de rede (`java.net.ServerSocket`).
+Construído sem frameworks externos (como Spring Boot, Netty ou Micronaut), o servidor utiliza exclusivamente os recursos concorrentes da biblioteca padrão do Java (`java.util.concurrent`), sockets nativos (`java.net.ServerSocket`) e as bibliotecas `gson.jar` e `postgresql.jar` em `lib/`.
 
 ### Estruturas de Dados Concorrentes
 
-Conforme definido na **ADR 0001**, o estado de memória do servidor foi projetado para alta concorrência *thread-safe* sem bloqueios globais:
+Conforme definido na **ADR 0001**, o estado de memória do servidor (`ServerState.java`) foi projetado para alta concorrência *thread-safe* sem bloqueios globais:
 
-- **`ConcurrentHashMap<Integer, Set<Session>>`**: Mapeia o `userId` para o conjunto de conexões ativas daquele usuário, suportando múltiplos dispositivos e abas simultâneas com operações de busca e broadcast em $O(1)$.
-- **`LinkedBlockingQueue<String>` (Outbox por Cliente)**: Buffer de saída exclusivo de cada conexão. Nenhuma thread escreve diretamente no socket de outra, garantindo que clientes com conexões lentas ou instáveis não bloqueiem o loop de entrega global.
-- **`ExecutorService (CachedThreadPool)`**: Pool dinâmico de threads para processamento assíncrono e isolamento de I/O de rede.
+- **`ConcurrentHashMap<Integer, Set<ClientConnection>>`**: Mapeia o `userId` para o conjunto concorrente de conexões WebSocket ativas daquele usuário, suportando múltiplos dispositivos e abas simultâneas com operações de busca e broadcast em $O(1)$.
+- **`LinkedBlockingQueue<String>` (Outbox Limitado por Cliente)**: Buffer de saída exclusivo de cada `ClientConnection` (capacidade de 100 mensagens) consumido por uma thread dedicada (`ws-writer-user-<id>`). Nenhuma thread escreve diretamente no socket de outra; clientes lentos que estourarem a fila são desconectados sem travar o restante do servidor.
+- **`LinkedBlockingQueue<Runnable>` (Fila Assíncrona de Eventos)**: Desacopla o recebimento do evento `CT18` na rede do processamento e distribuição do broadcast `CT22` pelos *workers* (`ws-event-worker`).
+- **`ExecutorService (CachedThreadPool)`**: Pool dinâmico de threads para atendimento simultâneo das conexões `WebSocketClientHandler`.
 
 ### Fluxo de Comunicação entre Módulos
 
 ```
   ┌─────────────────────────────────────────────────────────────┐
-  │                 Navegadores dos Usuários                    │
+  │            Navegadores dos Usuários (Vercel)                │
   │     (Painel do Solicitante / Painel Kanban dos Técnicos)    │
   └──────────────────────────────┬──────────────────────────────┘
                                  │ ▲
-         1. Abre Conexão e       │ │ 4. Entrega Evento em Tempo Real
-         Autentica Token (CT19)  │ │    via WebSocket (CT22)
+         1. Abre WebSocket e     │ │ 4. Entrega Evento em Tempo Real
+         Autentica Token (CT19)  │ │    via WebSocket (CT22 / Ping)
                                  ▼ │
                    ┌─────────────────────────────┐
                    │       BACKEND SOCKET        │
-                   │    (Java 21 / RFC 6455)     │
-                   └─────────────▲───────────────┘
-                                 │
-                                 │ 3. Notifica via TCP Interno (:5001)
-                                 │    com INTERNAL_SECRET (CT18)
-                                 │
-                   ┌─────────────┴───────────────┐
-                   │         BACKEND API         │
-                   │  (Java 21 / com.sun.httpserver)
-                   └─────────────┬───────────────┘
-                                 │ 2. Grava Chamado e Timeline
-                                 ▼    com Transação Segura
-                   ┌─────────────────────────────┐
-                   │    PostgreSQL 15+ (Neon)    │
-                   └─────────────────────────────┘
+                   │  (Java 21 / RFC 6455 :5000) │
+                   └──────┬──────────────▲───────┘
+                          │              │
+    2. Valida Usuário     │              │ 3. Publica Evento via WebSocket
+       no Banco (CT13)    │              │    com INTERNAL_SECRET (CT18)
+                          ▼              │
+                   ┌─────────────┐ ┌─────┴───────────────────────┐
+                   │ PostgreSQL  │◄┤         BACKEND API         │
+                   │ (Neon.tech) │ │  (Java 21 / Render Cloud)   │
+                   └─────────────┘ └─────────────────────────────┘
 ```
 
-1. O **Frontend** abre a conexão WebSocket na porta pública e envia o token de autenticação (`CT19: autenticarConexao`).
-2. O **Backend API** processa uma ação de negócio (ex: criação ou alteração de status) e consolida a transação no **PostgreSQL**.
-3. O **Backend API** aciona o **Backend Socket** via TCP interno na porta 5001 (`CT18: publicarEvento`).
-4. O **Backend Socket** identifica as sessões ativas dos interessados e transmite a atualização imediatamente via frames WebSocket (`CT22: chamadoAtualizado`).
+1. O **Frontend** abre a conexão WebSocket na porta pública (`ws://` ou `wss://`) e envia o token de autenticação (`CT19: autenticarConexao`).
+2. O **Backend Socket** valida a assinatura HMAC-SHA256 do token e consulta a tabela `users` no **PostgreSQL (Neon.tech)** via `UserDao` (`CT13: buscarUsuarioPorId`), registrando a sessão no `ServerState`.
+3. Quando um chamado é criado ou atualizado, o **Backend API** grava a transação no **Neon PostgreSQL** e envia o evento via WebSocket ao **Backend Socket** (`CT18: publicarEvento`) autenticado com `INTERNAL_SECRET`.
+4. O **Backend Socket** identifica as sessões ativas dos interessados (solicitante `clientId`, técnico `supportId` e todos os `SUPPORT`/`ADMIN` online) e transmite a atualização imediatamente via frames WebSocket (`CT22: chamadoAtualizado`).
 
 ---
 
@@ -180,7 +186,7 @@ A classe `com.helpdesk.socket.util.WebSocketUtil` traduz o fluxo de bytes do soc
 
 ### Handshake HTTP para WebSocket
 
-Ao receber uma conexão, o servidor lê as linhas HTTP iniciais:
+Ao receber uma conexão, o servidor lê os cabeçalhos HTTP byte a byte (sem usar `BufferedReader`, garantindo que nenhum byte do primeiro frame WebSocket seja engolido):
 1. Verifica a presença do cabeçalho `Sec-WebSocket-Key`.
 2. Concatena a chave com a constante normativa (Magic GUID): `258EAFA5-E914-47DA-95CA-C5AB0DC85B11`.
 3. Calcula o hash criptográfico SHA-1 e codifica o resultado em Base64.
@@ -194,8 +200,8 @@ Ao receber uma conexão, o servidor lê as linhas HTTP iniciais:
 
 ### Tratamento de Frames & Máscaras
 
-- **Leitura**: Por determinação da especificação, todo frame enviado pelo cliente (navegador) possui uma máscara de 4 bytes (`Masked`). O servidor extrai a chave de máscara e aplica a operação XOR byte a byte para revelar o payload original.
-- **Tamanhos Suportados**: Decodifica comprimentos de payload padrão (até 125 bytes), estendidos de 16 bits (até 65.535 bytes) e de 64 bits.
+- **Leitura**: Todo frame enviado pelo cliente possui uma máscara de 4 bytes (`Masked`). O servidor extrai a chave de máscara e aplica a operação XOR byte a byte para revelar o payload UTF-8 original.
+- **Tamanhos Suportados**: Decodifica comprimentos de payload padrão (até 125 bytes), estendidos de 16 bits (até 65.535 bytes) e de 64 bits (com proteção contra frames acima de 64 KB).
 - **Tipos de Frames (Opcodes)**:
   - `0x1`: Frame de Texto UTF-8.
   - `0x8`: Frame de Fechamento da Conexão (`Close`).
@@ -209,11 +215,11 @@ Se a requisição inicial recebida não contiver `Sec-WebSocket-Key` (como requi
   "status": "UP",
   "service": "backend-socket",
   "protocol": "websocket",
-  "version": "v0.4.3",
+  "version": "v0.5.0",
   "frontend": "https://help-desk-pi-iv.vercel.app"
 }
 ```
-Isso assegura compatibilidade com os cron jobs de keep-alive do plano gratuito do Render, eliminando cold starts sem necessidade de um servidor web separado.
+Isso assegura compatibilidade com monitores de uptime e cron jobs de keep-alive no Render, eliminando *cold starts* sem necessidade de abrir outra porta HTTP.
 
 ---
 
@@ -221,11 +227,12 @@ Isso assegura compatibilidade com os cron jobs de keep-alive do plano gratuito d
 
 As especificações contratuais do módulo estão documentadas na pasta [`docs/fluxos/`](./docs/fluxos/):
 
-| Contrato | Protocolo / Porta | Direção | Propósito | Atende |
+| Contrato | Protocolo / Canal | Direção | Propósito | Atende |
 |:---|:---|:---|:---|:---:|
-| **[CT18](./docs/fluxos/CT18-publicarEvento.md)** | TCP Interno (:5001) | Backend API → Backend Socket | Recebe eventos de criação (`CREATED`) e alteração (`UPDATED`) de chamados protegidos por `INTERNAL_SECRET`. | E4, E5 |
-| **[CT19](./docs/fluxos/CT19-autenticarConexao.md)** | WebSocket (:5000) | Frontend → Backend Socket | Autentica a sessão do usuário com base no Bearer Token JWT e valida o perfil/departamento no banco. | E4, E5, E6 |
-| **[CT22](./docs/fluxos/CT22-chamadoAtualizado.md)** | WebSocket (:5000) | Backend Socket → Frontend | Transmite em tempo real a atualização do chamado para os solicitantes e técnicos conectados. | E4, E5 |
+| **[CT19](./docs/fluxos/CT19-autenticarConexao.md)** | WebSocket (`:5000` / `wss://`) | Frontend → Backend Socket | Autentica a sessão WebSocket com token HMAC-SHA256, consulta o usuário no Neon (`CT13`) e retorna `conexaoAutenticada`. | E4, E5, E6 |
+| **[CT13](./docs/fluxos/visao-geral.md)** | JDBC TLS (`sslmode=require`) | Backend Socket → Banco (Neon) | Consulta `id, name, email, role, is_active` na tabela `users` (`UserDao.java`) durante a autenticação (`CT19`). | E4, E5, E6 |
+| **[CT18](./docs/fluxos/CT18-publicarEvento.md)** | WebSocket (`:5000` / `wss://`) | Backend API → Backend Socket | Recebe eventos de criação (`CREATED`) e alteração (`UPDATED`) de chamados protegidos por `INTERNAL_SECRET`. | E4, E5 |
+| **[CT22](./docs/fluxos/CT22-chamadoAtualizado.md)** | WebSocket (`:5000` / `wss://`) | Backend Socket → Frontend | Transmite em tempo real a atualização do chamado para o solicitante (`clientId`), técnico (`supportId`) e equipe `SUPPORT`/`ADMIN`. | E4, E5, E6 |
 
 ---
 
@@ -238,7 +245,7 @@ As especificações contratuais do módulo estão documentadas na pasta [`docs/f
 * **Status:** Aceito (com escopo revisado).
 * **Decisão de Descarte Formal:**  
   Durante a concepção inicial, avaliou-se a criação de salas de chat em tempo real por chamado (`ticketId` → conexões), buffer de mensagens em memória (`ConcurrentLinkedDeque`), filas de prioridade (`PriorityBlockingQueue`) e controle de SLA via `DelayQueue` (estilo Teams/WhatsApp).  
-  **Essa funcionalidade foi deliberadamente descartada do escopo** para simplificar a entrega, reduzir pontos de falha e garantir estabilidade. O servidor Socket foi focado estritamente na entrega confiável de eventos do Kanban (`chamadoAtualizado`) e notificações push. Toda a auditoria e histórico de mensagens permanecem transacionalmente salvos na tabela `ticket_timeline` do PostgreSQL via API REST.
+  **Essa funcionalidade foi deliberadamente descartada do escopo** para simplificar a entrega, reduzir pontos de falha e garantir estabilidade. O servidor WebSocket foi focado estritamente na entrega confiável de eventos do Kanban (`chamadoAtualizado` — `CT22`) e notificações push (`ADR 0002`). Toda a auditoria e histórico de mensagens permanecem transacionalmente salvos na tabela `ticket_timeline` do PostgreSQL no Neon.
 
 ### ADR 0002: Notificações em Tempo Real (Push Ping)
 
@@ -252,37 +259,47 @@ As especificações contratuais do módulo estão documentadas na pasta [`docs/f
 
 ## Estrutura do Repositório
 
-```
+```text
 pi4-2026-2-0102-grupo2-backend-socket/
 ├── .github/
 │   └── workflows/
-│       └── sync-to-main.yml    # Workflow automático de sincronização com o monorepo
+│       └── sync-to-main.yml                  # Workflow automático de sincronização com o monorepo
 ├── backend-socket/
-│   ├── Dockerfile              # Dockerfile multi-stage (build & runtime Alpine)
+│   ├── Dockerfile                            # Dockerfile multi-stage (JDK 21 -> JRE 21 Alpine)
 │   ├── lib/
-│   │   ├── postgresql.jar      # Driver JDBC PostgreSQL 42.7.3
-│   │   └── gson.jar            # Google Gson 2.11.0
+│   │   ├── postgresql.jar                    # Driver JDBC PostgreSQL 42.7.3
+│   │   └── gson.jar                          # Google Gson 2.11.0
 │   └── src/com/helpdesk/socket/
-│       ├── Main.java           # Entry point, ServerSocket e pool de threads
+│       ├── Main.java                         # Entry point, inicialização Neon DB e ServerSocket WebSocket
 │       ├── config/
-│       │   └── Database.java   # Gerenciador de conexão e pool JDBC (Neon DB / PostgreSQL)
+│       │   └── Database.java                 # Gerenciador de conexão e pool JDBC TLS (Neon.tech PostgreSQL)
+│       ├── dao/
+│       │   └── UserDao.java                  # Consulta parametrizada na tabela 'users' no Neon (CT13)
+│       ├── model/
+│       │   ├── SocketMessage.java            # Envelope padrão JSON {"type": "...", "data": {...}}
+│       │   ├── TicketEventPayload.java       # Modelo e validador de domínio dos contratos CT18 e CT22
+│       │   └── UserSessionInfo.java          # Dados de sessão do usuário autenticado (id, role, active)
+│       ├── server/
+│       │   ├── ClientConnection.java         # Sessão WebSocket autenticada com outbox LinkedBlockingQueue
+│       │   ├── ServerState.java              # Estado concorrente (ConcurrentHashMap + fila de broadcast CT22)
+│       │   └── WebSocketClientHandler.java   # Supervisora de conexões WebSocket (CT19 e CT18)
 │       └── util/
-│           ├── AuthUtil.java   # Validação criptográfica de token HMAC-SHA256 (CT19)
-│           ├── JsonUtil.java   # Serialização e parsing JSON estruturado (Google Gson)
-│           └── WebSocketUtil.java # Handshake RFC 6455, decodificação de frames e Health Check
+│           ├── AuthUtil.java                 # Validação criptográfica de token HMAC-SHA256 (CT19)
+│           ├── JsonUtil.java                 # Serialização e parsing JSON estruturado (Google Gson)
+│           └── WebSocketUtil.java            # Handshake RFC 6455, decodificação de frames e Health Check
 ├── docs/
 │   ├── adr/
-│   │   ├── 0001-servidor.md    # Registro de decisão de concorrência e descarte de chat
-│   │   └── 0002-notificacao.md # Registro de decisão de notificações push
-│   ├── fluxos/                 # Contratos CT18, CT19, CT22 e entregáveis E1 a E9
+│   │   ├── 0001-servidor.md                  # Registro de decisão de concorrência e descarte de chat
+│   │   └── 0002-notificacao.md               # Registro de decisão de notificações push
+│   ├── fluxos/                               # Contratos CT18, CT19, CT22 e entregáveis E1 a E9
 │   │   ├── CT18-publicarEvento.md
 │   │   ├── CT19-autenticarConexao.md
 │   │   ├── CT22-chamadoAtualizado.md
 │   │   ├── visao-geral.md
 │   │   └── README.md
-│   └── escopo.pdf              # Especificação oficial de requisitos (revisada)
+│   └── escopo.pdf                            # Especificação oficial de requisitos (revisada)
 ├── .gitignore
-└── README.md                   # Esta documentação especializada
+└── README.md                                 # Esta documentação especializada
 ```
 
 ---
@@ -291,37 +308,38 @@ pi4-2026-2-0102-grupo2-backend-socket/
 
 ### Pré-requisitos
 - **Java JDK 21** instalado.
-- Acesso à internet para conexão com o banco de dados Neon (ou PostgreSQL 15 local).
+- Acesso à internet para conexão TLS com o banco de dados PostgreSQL no **Neon.tech**.
 
 ### Variáveis de Ambiente
 
-O servidor pode ser configurado via variáveis de ambiente padrão ou utilizará fallbacks seguros para desenvolvimento:
+O servidor utiliza exatamente o mesmo padrão de variáveis de ambiente do `backend-api` no Render:
 
 | Variável | Padrão | Descrição |
 |:---|:---|:---|
-| `PORT` ou `WS_PORT` | `5000` | Porta pública para o handshake WebSocket e Health Check HTTP. |
-| `INTERNAL_PORT` | `5001` | Porta TCP interna para comunicação exclusiva com o Backend API. |
-| `INTERNAL_SECRET` | `secret-dev` | Segredo compartilhado com a API para autenticação de eventos (CT18). |
-| `JWT_SECRET` | `jwt-secret` | Chave HMAC compartilhada para validação de tokens de usuários (CT19). |
-| `DATABASE_URL` / `DB_URL` | *Neon DB URL* | URL completa de conexão JDBC PostgreSQL (`jdbc:postgresql://...`). |
-| `DB_HOST` | `localhost` | Host do banco PostgreSQL (utilizado caso `DATABASE_URL` não esteja definida). |
+| `PORT` ou `WS_PORT` | `5000` | Porta pública para conexões WebSocket (`CT19`, `CT18`, `CT22`) e Health Check HTTP. |
+| `INTERNAL_SECRET` | `segredo-interno-entre-backends` | Segredo compartilhado com a API para autenticação de eventos (`CT18`). |
+| `JWT_SECRET` | `minha-chave-secreta-super-segura-hmac-256` | Chave HMAC-SHA256 compartilhada com a API para validação de tokens (`CT19`). |
+| `DB_URL` / `DATABASE_URL` | *Neon JDBC URL* | URL JDBC PostgreSQL (`jdbc:postgresql://<host>/neondb?sslmode=require`). |
+| `DB_HOST` | *(Host do Neon)* | Host do banco PostgreSQL no Neon (usado caso `DB_URL` não seja informada). |
 | `DB_PORT` | `5432` | Porta do banco PostgreSQL. |
-| `DB_NAME` | `helpdesk` | Nome do banco de dados relacional. |
-| `DB_USER` | `postgres` | Usuário de autenticação no banco. |
-| `DB_PASSWORD` | *(vazio)* | Senha de autenticação no banco. |
+| `DB_NAME` | `neondb` | Nome do banco de dados no Neon.tech. |
+| `DB_USER` | `neondb_owner` | Usuário de autenticação no banco Neon.tech. |
+| `DB_PASSWORD` | *(Senha do Neon)* | Senha de autenticação no banco Neon.tech. |
 
 ### Compilação e Execução Manual
 
-A partir do diretório raiz deste repositório:
+A partir do diretório `backend-socket/`:
 
+**No Windows (PowerShell):**
+```powershell
+javac -encoding UTF-8 -cp "lib/*" -d out src/com/helpdesk/socket/Main.java src/com/helpdesk/socket/config/*.java src/com/helpdesk/socket/util/*.java src/com/helpdesk/socket/model/*.java src/com/helpdesk/socket/dao/*.java src/com/helpdesk/socket/server/*.java
+java -cp "out;lib/*" com.helpdesk.socket.Main
+```
+
+**No Linux / macOS / WSL:**
 ```bash
-cd backend-socket
-
-# 1. Compilar em Java Puro (sem Maven/Gradle)
 mkdir -p out
-javac -cp "lib/*" -d out $(find src -name "*.java")
-
-# 2. Executar o servidor
+javac -encoding UTF-8 -cp "lib/*" -d out $(find src -name "*.java")
 java -cp "out:lib/*" com.helpdesk.socket.Main
 ```
 
@@ -345,7 +363,7 @@ Este repositório possui uma automação em [`.github/workflows/sync-to-main.yml
 
 Sempre que alterações são integradas à branch `main` dentro da pasta `backend-socket/`, o GitHub Actions:
 1. Clona o repositório principal do grupo (`pi4-2026-2-0102-grupo2`).
-2. Sincroniza via `rsync` os arquivos compiláveis e de configuração para a pasta correspondente no monorepo.
+2. Sincroniza via `rsync` os arquivos compiláveis e de configuração para a pasta `backend-socket/` no monorepo.
 3. Cria um commit automatizado com a mensagem `chore(backend-socket): sync code from backend-socket repo (<SHA>)`.
 
-Isso permite que o desenvolvimento do módulo de socket ocorra de forma desacoplada sem comprometer a integridade do monorepo principal.
+Isso permite que o desenvolvimento do servidor WebSocket ocorra de forma modular e independente, mantendo o monorepo central sempre atualizado.
