@@ -15,7 +15,7 @@ Os contratos CT1 a CT17 (operações HTTP e tabelas do banco) ficam no repositó
 
 | ID | Nome | Fronteira | Quem chama → quem responde | Atende |
 |---|---|---|---|---|
-| CT18 | [publicarEvento](CT18-publicarEvento.md) | TCP interno | Backend API → Backend Socket | E4, E5 |
+| CT18 | [publicarEvento](CT18-publicarEvento.md) | WebSocket | Backend API → Backend Socket | E4, E5 |
 | CT19 | [autenticarConexao](CT19-autenticarConexao.md) | WebSocket | Frontend → Backend Socket | E4, E5 |
 | CT22 | [chamadoAtualizado](CT22-chamadoAtualizado.md) | WebSocket | Backend Socket → Frontend | E4, E5 |
 
