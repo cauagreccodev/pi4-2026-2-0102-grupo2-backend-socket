@@ -8,7 +8,7 @@
 2. O Frontend chama o Backend API com a operação `assignTicket` (CT8).
 3. O Backend API confere se a solicitação ainda está "Em aberto", grava o estado "Em atendimento" com o técnico responsável na tabela `tickets` (CT4) e registra a mudança na tabela `ticket_timeline` (CT5).
 4. O Backend API responde ao Frontend com a solicitação atualizada.
-5. O Backend API avisa o Backend Socket via TCP interno com a operação `publicarEvento` (CT18).
+5. O Backend API avisa o Backend Socket via WebSocket com a operação `publicarEvento` (CT18).
 6. O Backend Socket envia o evento `chamadoAtualizado` (CT22) via WebSocket para as telas abertas dos técnicos, que movem o chamado para a nova coluna sem recarregar a página.
 7. Ao terminar o atendimento, o técnico clica em "Resolver".
 8. O Frontend chama o Backend API com a operação `resolveTicket` (CT9).
