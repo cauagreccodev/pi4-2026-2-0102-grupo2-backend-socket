@@ -10,7 +10,7 @@ O Help Desk permite que funcionários abram e acompanhem chamados, técnicos ate
 | :--- | :--- | :--- | :--- | :--- |
 | Frontend | Apresenta login, cadastro, painel, chamados, histórico e notificações para funcionários, técnicos e administradores. | HTML5, CSS3 e JavaScript nativos | [pi4-0102-g2-frontend](https://github.com/Vinicius-Heinzl/pi4-0102-g2-frontend) | Vinicius Fortes Heinzl |
 | Backend API | Autentica usuários, aplica permissões e gerencia chamados, categorias, histórico e notificações persistidas. | Java 21, HTTP REST, Gson e JDBC | [backend-api](https://github.com/Shinypuc/backend-api) | Kaue Rodrigues Seixas |
-| Backend Socket | Gerencia conexões concorrentes e distribui notificações e eventos dos chamados às sessões dos usuários. | Java 21, sockets TCP e coleções concorrentes; interface WebSocket pública | [pi4-2026-2-0102-grupo2-backend-socket](https://github.com/cauagreccodev/pi4-2026-2-0102-grupo2-backend-socket) | Cauã Vasconcelos Grecco De Faria |
+| Backend Socket | Gerencia conexões concorrentes e distribui notificações e eventos dos chamados às sessões dos usuários. | Java 21, protocolo WebSocket (RFC 6455 sobre ServerSocket) e coleções concorrentes | [pi4-2026-2-0102-grupo2-backend-socket](https://github.com/cauagreccodev/pi4-2026-2-0102-grupo2-backend-socket) | Cauã Vasconcelos Grecco De Faria |
 | Banco de dados — Neon (externo) | Guarda usuários, categorias, chamados, histórico e notificações nas tabelas `users`, `categories`, `tickets`, `ticket_timeline` e `notifications`. | PostgreSQL 15+ gerenciado no Neon | Modelagem junto do [Backend API](https://github.com/Shinypuc/backend-api/blob/main/database_modeling.md); sem repositório próprio | Kaue Rodrigues Seixas |
 
 **Responsáveis sugeridos:** a distribuição considera os proprietários dos três repositórios; o banco foi atribuído ao responsável pela API. É uma proposta para o grupo validar, pois os documentos consultados não formalizam essa divisão.
@@ -33,13 +33,13 @@ flowchart TD
 
     pessoa -->|"Usa a interface pelo navegador"| frontend
     frontend <-->|"Ações e respostas JSON / HTTPS REST"| api
-    api -.->|"Eventos de chamados JSON / TCP interno, porta 5001"| socket
+    api -.->|"Eventos de chamados JSON / WebSocket, porta 5000 (WSS)"| socket
     frontend <-.->|"Sessão e eventos JSON / WebSocket seguro, WSS"| socket
     api <-->|"Leitura e gravação / SQL por JDBC com TLS"| banco
     socket <-->|"Validação de sessões e usuários / SQL por JDBC com TLS"| banco
 ```
 
-A API grava as alterações e as notificações no banco antes de avisar o Backend Socket via TCP interno (CT18). O socket entrega as atualizações aos painéis conectados via WebSocket (CT22); o frontend consulta a API para carregar ou reconciliar os dados e o histórico.
+A API grava as alterações e as notificações no banco antes de avisar o Backend Socket via WebSocket (CT18). O socket entrega as atualizações aos painéis conectados via WebSocket (CT22); o frontend consulta a API para carregar ou reconciliar os dados e o histórico.
 
 **Integração por WebSocket:** o navegador abre conexões WebSocket na porta pública do Backend Socket (CT19). A conexão direta do Socket com o banco é utilizada para validar a assinatura do token e obter a permissão/perfil (`role`) do usuário na tabela `users` (CT13).
 

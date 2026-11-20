@@ -2,11 +2,11 @@
 
 | Linha | Valor |
 |---|---|
-| Fronteira | TCP interno (entre os dois backends) |
+| Fronteira | WebSocket (entre os dois backends, RFC 6455) |
 | Quem chama | Backend API, logo depois de gravar um chamado novo (CT4) ou uma mudança de chamado (CT7) |
 | Quem responde | Backend Socket |
 | Atende | E4 e E5 |
-| Como chamar | Conexão TCP na porta interna 5001 do Backend Socket. Uma linha JSON por evento: `{"type":"publicarEvento","data":{...}}` |
+| Como chamar | Conexão WebSocket (`ws://` ou `wss://`) na porta 5000 (`PORT`) do Backend Socket (`/ws`). Frame de texto JSON: `{"type":"publicarEvento","data":{...}}` |
 
 ## Entrada
 
