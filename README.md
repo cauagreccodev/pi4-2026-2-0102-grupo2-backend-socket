@@ -4,8 +4,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/M%C3%B3dulo-Backend--Socket-00B4D8?style=for-the-badge&logo=git&logoColor=white" />
-  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v0.5.0-10B981?style=for-the-badge&logo=git&logoColor=white" />
-  <img src="https://img.shields.io/badge/Monorepo-v0.5.0-00B4D8?style=for-the-badge&logo=github&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v1.0.0-10B981?style=for-the-badge&logo=git&logoColor=white" />
+  <img src="https://img.shields.io/badge/Monorepo-v1.0.0-00B4D8?style=for-the-badge&logo=github&logoColor=white" />
   <img src="https://img.shields.io/badge/Java-21_Puro-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
   <img src="https://img.shields.io/badge/Protocolo-RFC_6455_WebSocket-7C3AED?style=for-the-badge&logo=socketdotio&logoColor=white" />
   <img src="https://img.shields.io/badge/Database-Neon_PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white" />
@@ -18,7 +18,7 @@
 ## Sumário
 
 - [Visão Geral do Módulo](#visão-geral-do-módulo)
-- [Status Atual do Módulo (v0.5.0)](#status-atual-do-módulo-v050)
+- [Status Atual do Módulo (v1.0.0)](#status-atual-do-módulo-v100)
 - [Histórico de Versões (Changelog)](#histórico-de-versões-changelog)
 - [Responsável & Papel no Projeto](#responsável--papel-no-projeto)
 - [Arquitetura e Concorrência](#arquitetura-e-concorrência)
@@ -47,37 +47,32 @@
 O **Backend Socket** é o componente de infraestrutura responsável por garantir que o Help Desk opere de forma reativa e instantânea. Ele atua como um hub de mensageria leve 100% baseado no protocolo **WebSocket (RFC 6455)**, mantendo sessões persistentes com os navegadores dos usuários e recebendo eventos de chamados gerados pelo **Backend API**.
 
 Principais atribuições:
-1. **Orquestração de Sessões WebSocket (`CT19 — autenticarConexao`)**: Gerencia o ciclo de vida das conexões ativas, validando a assinatura HMAC-SHA256 do token e consultando o perfil (`role`) e status (`is_active`) do usuário no banco PostgreSQL do **Neon.tech** (`CT13`).
-2. **Recebimento Seguro de Eventos (`CT18 — publicarEvento`)**: Recebe eventos de abertura e atualização de chamados emitidos pela `backend-api` via WebSocket, autenticando o segredo compartilhado (`INTERNAL_SECRET`) em tempo constante.
-3. **Distribuição Seletiva em Tempo Real (`CT22 — chamadoAtualizado`)**: Notifica instantaneamente os painéis de todos os técnicos (`SUPPORT`/`ADMIN`) conectados e exclusivamente as abas do cliente solicitante (`clientId`) daquele chamado.
+1. **Orquestração de Sessões WebSocket (`CT19 — autenticarConexao`)**: Gerencia o ciclo de vida das conexões ativas, validando a assinatura HMAC-SHA256 do token e consultando o perfil (`role`), setor (`department`) e status (`is_active`) do usuário no banco PostgreSQL do **Neon.tech** (`CT13`).
+2. **Recebimento Seguro de Eventos (`CT18 — publicarEvento`)**: Recebe eventos de abertura e atualização de chamados emitidos pela `backend-api` via WebSocket persistente reutilizável, autenticando o segredo compartilhado (`INTERNAL_SECRET`) em tempo constante.
+3. **Distribuição Seletiva em Tempo Real (`CT22 — chamadoAtualizado`)**: Notifica instantaneamente os painéis de todos os técnicos (`SUPPORT`/`ADMIN`/`TECNICO` e setor `TI`), os colegas do mesmo departamento do chamado e exclusivamente as abas do cliente solicitante (`clientId`).
 4. **Disparo de Notificações Push (`ADR 0002 — NOTIFICATION_PING`)**: Envia alertas leves em tempo real direcionados ao usuário destinatário, atualizando o contador visual do sino e acionando feedback sonoro.
 5. **Interoperabilidade Dual (HTTP + WS)**: Atende requisições de Health Check (`GET /health`, `GET /`, `HEAD /`) na mesma porta pública do WebSocket (`PORT` / `5000`), evitando que o **Render** suspenda a aplicação por inatividade.
 
 ---
 
-## Status Atual do Módulo (v0.5.0)
+## Status Atual do Módulo (v1.0.0)
 
-> **Servidor WebSocket RFC 6455 100% completo e operacional em Java 21 Puro: contratos `CT18`, `CT19`, `CT22` e `CT13` implementados, estado concorrente `ServerState` (`ADR 0001`), `ClientConnection` com *outbox* assíncrono, `UserDao` integrado ao Neon PostgreSQL via TLS e validado com Análise de Valores de Fronteira (BVA).**
-
-Principais entregas ativas na versão:
-- **Motor Completo do Servidor WebSocket (`WebSocketClientHandler.java`, `ServerState.java`, `ClientConnection.java`)**: Supervisão de sessões, fila assíncrona de eventos (`LinkedBlockingQueue<Runnable>`), *outbox* individual por conexão (`LinkedBlockingQueue<String>`) e roteamento em tempo real (`CT18`, `CT19`, `CT22` e `NOTIFICATION_PING`).
-- **Camada de Acesso a Dados e Modelos (`UserDao.java`, `SocketMessage.java`, `UserSessionInfo.java`, `TicketEventPayload.java`)**: Consulta parametrizada na tabela `users` do Neon DB (`CT13`), validação rigorosa de campos obrigatórios e sanitização automática de dados sensíveis (`secret`).
-- **Conexão e Pooling com PostgreSQL/Neon DB (`Database.java`)**: Conexão JDBC nativa com driver `org.postgresql.Driver`, pool concorrente thread-safe (`ArrayBlockingQueue`) e suporte obrigatório a SSL/TLS (`sslmode=require`).
-- **Validação Criptográfica de Tokens (`AuthUtil.java`)**: Verificação de integridade e expiração de tokens via HMAC-SHA256, 100% compatível com o `backend-api`.
-- **Serialização de Mensagens (`JsonUtil.java`)**: Manipulação e parsing JSON com Google Gson para envelopes padronizados (`{"type": "...", "data": {...}}`).
+> **Versão Final de Produção (v1.0.0): Servidor WebSocket RFC 6455 100% completo, estável e resiliente em Java 21 Puro. Contratos `CT18`, `CT19`, `CT22` e `CT13` em conformidade estrita com o escopo oficial, testes automatizados JUnit 5 em CI, Heartbeat Keep-Alive (20s) contra queda de proxy reverso e broadcast departamental em tempo real.**
 
 ---
 
 ## Histórico de Versões (Changelog)
 
-### [v0.5.0] — Servidor WebSocket Completo (CT18, CT19, CT22), Modelos e UserDao no Neon (CT13)
-*Versão atual do módulo (Cards `#915` e `#924`)*
+### [v1.0.0] — Versão Final Estável: Resiliência em Produção, Heartbeat e Broadcast Setorial
+*Versão de entrega e produção do módulo (Cards `#1436`, `#1437` e `#1445`)*
 
-- **Motor do Servidor & Concorrência (`server/`)**:
-  - Implementação de `ClientConnection.java` representando cada sessão WebSocket autenticada com fila de saída exclusiva limitada (`LinkedBlockingQueue<String>` de 100 mensagens) e thread dedicada de escrita (`ADR 0001`).
-  - Implementação de `ServerState.java` com `ConcurrentHashMap<Integer, Set<ClientConnection>>` para múltiplas abas por usuário, fila assíncrona de eventos (`LinkedBlockingQueue<Runnable>`) e filtro seletivo de broadcast para o contrato `CT22 (chamadoAtualizado)` e `NOTIFICATION_PING` (`ADR 0002`).
-  - Implementação de `WebSocketClientHandler.java` atendendo os contratos `CT19 (autenticarConexao)` e `CT18 (publicarEvento)` sobre WebSocket RFC 6455, com validação de `INTERNAL_SECRET` via `MessageDigest.isEqual` e tratamento completo dos códigos de erro (`NAO_AUTENTICADO`, `TOKEN_INVALIDO`, `USUARIO_INATIVO`).
-  - Atualização da `Main.java` e do `Dockerfile` (compilação UTF-8) para execução de produção no Render.
+- **Heartbeat Keep-Alive (RFC 6455 Ping/Pong)**: Disparo periódico de Ping frames (`opcode 0x9`) a cada 20 segundos em `ClientConnection.java` via timeout de outbox, eliminando desconexões silenciosas por ociosidade em proxies reversos (Render/Cloudflare).
+- **Compatibilidade Completa de TI**: Reconhecimento automático de membros da equipe de TI independentemente da coluna `role` (aceita `role IN ('SUPPORT', 'ADMIN', 'TECNICO')` e `department = 'TI'`), integrando perfeitamente aprendizes e técnicos cadastrados pela interface.
+- **Broadcast Departamental em Tempo Real**: Distribuição de eventos de chamados (`CT22`) estendida para todos os colegas conectados do mesmo setor do solicitante, garantindo visibilidade mútua entre colaboradores de um mesmo departamento (ex: Financeiro, Compras).
+- **Autenticação Resiliente no CT19**: Sessão com fallback de contingência pós-validação de assinatura HMAC do token, protegendo a conectividade dos clientes contra oscilações de conexão serverless no Neon DB.
+- **Conexão Direta JDBC e Pooler PgBouncer**: Suporte aprimorado no `Database.java` com credenciais diretas e compatibilidade com URLs pooler (`-pooler`) do Neon.
+- **Loop Persistente no CT18**: Suporte à reutilização de conexão WebSocket da `backend-api`, processando múltiplos eventos em fluxo contínuo.
+- **Suíte de Testes Automatizados JUnit 5 (`test/`)**: Cobertura de 100% dos contratos `CT18`, `CT19`, `CT22` e modelos de dados com pipeline de CI automatizada no GitHub Actions.
 - **Modelos & Persistência (`model/` e `dao/`)**:
   - Implementação de `SocketMessage.java`, `UserSessionInfo.java` e `TicketEventPayload.java` (com validação de domínio e omissão de `secret` na conversão para `CT22`).
   - Implementação de `UserDao.java` (`CT13: buscarUsuarioPorId`) consultando `id, name, email, role, is_active` no Neon PostgreSQL.
