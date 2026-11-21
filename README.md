@@ -4,8 +4,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/M%C3%B3dulo-Backend--Socket-00B4D8?style=for-the-badge&logo=git&logoColor=white" />
-  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v1.0.0-10B981?style=for-the-badge&logo=git&logoColor=white" />
-  <img src="https://img.shields.io/badge/Monorepo-v1.0.0-00B4D8?style=for-the-badge&logo=github&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v1.0-10B981?style=for-the-badge&logo=git&logoColor=white" />
+  <img src="https://img.shields.io/badge/Monorepo-v1.0-00B4D8?style=for-the-badge&logo=github&logoColor=white" />
   <img src="https://img.shields.io/badge/Java-21_Puro-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
   <img src="https://img.shields.io/badge/Protocolo-RFC_6455_WebSocket-7C3AED?style=for-the-badge&logo=socketdotio&logoColor=white" />
   <img src="https://img.shields.io/badge/Database-Neon_PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white" />
@@ -18,7 +18,7 @@
 ## Sumário
 
 - [Visão Geral do Módulo](#visão-geral-do-módulo)
-- [Status Atual do Módulo (v1.0.0)](#status-atual-do-módulo-v100)
+- [Status Atual do Módulo (v1.0)](#status-atual-do-módulo-v10)
 - [Histórico de Versões (Changelog)](#histórico-de-versões-changelog)
 - [Responsável & Papel no Projeto](#responsável--papel-no-projeto)
 - [Arquitetura e Concorrência](#arquitetura-e-concorrência)
@@ -55,15 +55,15 @@ Principais atribuições:
 
 ---
 
-## Status Atual do Módulo (v1.0.0)
+## Status Atual do Módulo (v1.0)
 
-> **Versão Final de Produção (v1.0.0): Servidor WebSocket RFC 6455 100% completo, estável e resiliente em Java 21 Puro. Contratos `CT18`, `CT19`, `CT22` e `CT13` em conformidade estrita com o escopo oficial, testes automatizados JUnit 5 em CI, Heartbeat Keep-Alive (20s) contra queda de proxy reverso e broadcast departamental em tempo real.**
+> **Versão Final de Produção (v1.0): Servidor WebSocket RFC 6455 100% completo, estável e resiliente em Java 21 Puro. Contratos `CT18`, `CT19`, `CT22` e `CT13` em conformidade estrita com o escopo oficial, testes automatizados JUnit 5 em CI, Heartbeat Keep-Alive (20s) contra queda de proxy reverso e broadcast departamental em tempo real.**
 
 ---
 
 ## Histórico de Versões (Changelog)
 
-### [v1.0.0] — Versão Final Estável: Resiliência em Produção, Heartbeat e Broadcast Setorial
+### [v1.0] — Versão Final Estável: Resiliência em Produção, Heartbeat e Broadcast Setorial
 *Versão de entrega e produção do módulo (Cards `#1436`, `#1437` e `#1445`)*
 
 - **Heartbeat Keep-Alive (RFC 6455 Ping/Pong)**: Disparo periódico de Ping frames (`opcode 0x9`) a cada 20 segundos em `ClientConnection.java` via timeout de outbox, eliminando desconexões silenciosas por ociosidade em proxies reversos (Render/Cloudflare).
