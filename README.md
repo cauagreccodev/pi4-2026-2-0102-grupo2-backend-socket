@@ -4,8 +4,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/M%C3%B3dulo-Backend--Socket-00B4D8?style=for-the-badge&logo=git&logoColor=white" />
-  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v1.0-10B981?style=for-the-badge&logo=git&logoColor=white" />
-  <img src="https://img.shields.io/badge/Monorepo-v1.0-00B4D8?style=for-the-badge&logo=github&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v1.0.1-10B981?style=for-the-badge&logo=git&logoColor=white" />
+  <img src="https://img.shields.io/badge/Monorepo-v1.0.1-00B4D8?style=for-the-badge&logo=github&logoColor=white" />
   <img src="https://img.shields.io/badge/Java-21_Puro-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
   <img src="https://img.shields.io/badge/Protocolo-RFC_6455_WebSocket-7C3AED?style=for-the-badge&logo=socketdotio&logoColor=white" />
   <img src="https://img.shields.io/badge/Database-Neon_PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white" />
@@ -18,7 +18,7 @@
 ## Sumário
 
 - [Visão Geral do Módulo](#visão-geral-do-módulo)
-- [Status Atual do Módulo (v1.0)](#status-atual-do-módulo-v10)
+- [Status Atual do Módulo (v1.0.1)](#status-atual-do-módulo-v101)
 - [Histórico de Versões (Changelog)](#histórico-de-versões-changelog)
 - [Responsável & Papel no Projeto](#responsável--papel-no-projeto)
 - [Arquitetura e Concorrência](#arquitetura-e-concorrência)
@@ -55,13 +55,20 @@ Principais atribuições:
 
 ---
 
-## Status Atual do Módulo (v1.0)
+## Status Atual do Módulo (v1.0.1)
 
-> **Versão Final de Produção (v1.0): Servidor WebSocket RFC 6455 100% completo, estável e resiliente em Java 21 Puro. Contratos `CT18`, `CT19`, `CT22` e `CT13` em conformidade estrita com o escopo oficial, testes automatizados JUnit 5 em CI, Heartbeat Keep-Alive (20s) contra queda de proxy reverso e broadcast departamental em tempo real.**
+> **Versão de Produção (v1.0.1): Servidor WebSocket RFC 6455 100% completo, estável e resiliente em Java 21 Puro. Suporte ao ciclo CRUD integral (incluindo exclusões com `action = 'DELETED'`), contratos `CT18`, `CT19`, `CT22` e `CT13` em conformidade estrita com o escopo oficial, testes automatizados JUnit 5 em CI, Heartbeat Keep-Alive (20s) contra queda de proxy reverso e broadcast departamental em tempo real.**
 
 ---
 
 ## Histórico de Versões (Changelog)
+
+### [v1.0.1] — Suporte à Ação DELETED no CT18/CT22 e Ciclo CRUD Completo (#1472)
+*Patch de correção e fechamento do ciclo CRUD em tempo real (Card `#1472`)*
+
+- **Ação DELETED no CT18**: Atualização de `TicketEventPayload.hasRequiredFields()` para aceitar a ação `"DELETED"`, permitindo que eventos de exclusão emitidos pela `backend-api` sejam aceitos e validados pelo servidor de socket.
+- **Broadcast de Exclusão no CT22**: Propagação em tempo real do evento `chamadoAtualizado` com `action = "DELETED"` para toda a equipe de TI, solicitante e membros do setor, permitindo que o frontend remova chamados deletados das telas sem necessidade de F5.
+- **Cobertura de Testes**: Atualização de `TicketEventPayloadTest.java` com validação automatizada da ação `DELETED`.
 
 ### [v1.0] — Versão Final Estável: Resiliência em Produção, Heartbeat e Broadcast Setorial
 *Versão de entrega e produção do módulo (Cards `#1436`, `#1437` e `#1445`)*
