@@ -4,8 +4,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/M%C3%B3dulo-Backend--Socket-00B4D8?style=for-the-badge&logo=git&logoColor=white" />
-  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v1.0.1-10B981?style=for-the-badge&logo=git&logoColor=white" />
-  <img src="https://img.shields.io/badge/Monorepo-v1.0.1-00B4D8?style=for-the-badge&logo=github&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vers%C3%A3o_M%C3%B3dulo-v1.0.2-10B981?style=for-the-badge&logo=git&logoColor=white" />
+  <img src="https://img.shields.io/badge/Monorepo-v1.0.2-00B4D8?style=for-the-badge&logo=github&logoColor=white" />
   <img src="https://img.shields.io/badge/Java-21_Puro-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
   <img src="https://img.shields.io/badge/Protocolo-RFC_6455_WebSocket-7C3AED?style=for-the-badge&logo=socketdotio&logoColor=white" />
   <img src="https://img.shields.io/badge/Database-Neon_PostgreSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white" />
@@ -18,7 +18,7 @@
 ## Sumário
 
 - [Visão Geral do Módulo](#visão-geral-do-módulo)
-- [Status Atual do Módulo (v1.0.1)](#status-atual-do-módulo-v101)
+- [Status Atual do Módulo (v1.0.2)](#status-atual-do-módulo-v102)
 - [Histórico de Versões (Changelog)](#histórico-de-versões-changelog)
 - [Responsável & Papel no Projeto](#responsável--papel-no-projeto)
 - [Arquitetura e Concorrência](#arquitetura-e-concorrência)
@@ -55,13 +55,24 @@ Principais atribuições:
 
 ---
 
-## Status Atual do Módulo (v1.0.1)
+## Status Atual do Módulo (v1.0.2)
 
-> **Versão de Produção (v1.0.1): Servidor WebSocket RFC 6455 100% completo, estável e resiliente em Java 21 Puro. Suporte ao ciclo CRUD integral (incluindo exclusões com `action = 'DELETED'`), contratos `CT18`, `CT19`, `CT22` e `CT13` em conformidade estrita com o escopo oficial, testes automatizados JUnit 5 em CI, Heartbeat Keep-Alive (20s) contra queda de proxy reverso e broadcast departamental em tempo real.**
+> **Versão de Produção (v1.0.2): Servidor WebSocket RFC 6455 100% completo, estável e resiliente em Java 21 Puro com Rating 'A' no SonarCloud. Suporte ao ciclo CRUD integral (incluindo exclusões com `action = 'DELETED'`), conformidade rigorosa aos contratos `CT18`, `CT19`, `CT22` e `CT13`, testes automatizados JUnit 5 em CI, Heartbeat Keep-Alive (20s) contra queda de proxy reverso e broadcast departamental em tempo real.**
 
 ---
 
 ## Histórico de Versões (Changelog)
+
+### [v1.0.2] — Refatoração de Qualidade SonarCloud (Rating 'A') e Correção de Testes Unitários
+*Patch de conformidade estática, eliminação de débitos técnicos e garantia de Rating 'A'*
+
+- **Rating 'A' no SonarCloud**: Eliminação de todos os bugs e vulnerabilidades estáticas apontadas pelo SonarScanner:
+  - `Main.java (S2095)`: Inclusão de `connectionPool` no bloco `try-with-resources` com encerramento garantido de threads.
+  - `WebSocketUtil.java (S4790)`: Anotação `@SuppressWarnings("java:S4790")` documentando a exigência formal de SHA-1 estipulada pela RFC 6455 para handshakes WebSocket.
+  - `ClienteWs.java (S2119)`: Reutilização de instância estática única de `SecureRandom`.
+  - `WebSocketUtilTest.java (S6466)`: Asserção de fronteira explícita antes de indexação de array.
+  - `Dockerfile (S6471)`: Execução em usuário não-root (`appuser`) na etapa de runtime.
+- **Correção em Testes de Contrato**: Atualização de `TicketEventPayloadTest.java` para validar aceitação da ação `DELETED` e testar rejeição com ação `CANCELADO`.
 
 ### [v1.0.1] — Suporte à Ação DELETED no CT18/CT22 e Ciclo CRUD Completo (#1472)
 *Patch de correção e fechamento do ciclo CRUD em tempo real (Card `#1472`)*
